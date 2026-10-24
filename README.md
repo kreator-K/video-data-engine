@@ -1,6 +1,6 @@
-# Video Data Agent
+# Video Data Engine
 
-A video-native brand and product insights studio. Enter a topic, optionally add YouTube references, and analyze up to ten source videos through the existing multimodal pipeline. Findings link to source videos, transcript timestamps, and sampled visual evidence.
+Video Data Engine is a video-native brand and product insights studio. Enter a topic, optionally add YouTube references, and analyze up to ten source videos through the existing multimodal pipeline. Findings link to source videos, transcript timestamps, and sampled visual evidence.
 
 ## Current status
 
