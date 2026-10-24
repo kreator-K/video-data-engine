@@ -8,7 +8,7 @@ Normalize dynamic display text at the rendering boundary without altering raw
 evidence, identifiers, URLs, or backend analysis. Keep this rule enforced by the
 frontend build checks. Do not introduce em dashes in new frontend copy.
 
-# Video Data Agent: Agent Roles and Collaboration Contract
+# Video Data Engine: Agent Roles and Collaboration Contract
 
 This is the repository-wide instruction file for Codex agents. Treat the above
 frontend copy rule as a hard constraint. The roles below describe responsibilities
@@ -17,7 +17,7 @@ running in the repository.
 
 ## Product mission and constraints
 
-Video Data Agent is a video-native, evidence-grounded brand and product insights
+Video Data Engine is a video-native, evidence-grounded brand and product insights
 platform. A user enters an open-ended brand, product, category, or industry topic,
 optionally supplies video URLs, and explores the analysis in a visually rich report.
 iPhone Duo is one demonstration, NOT a fixed product or taxonomy.
@@ -36,6 +36,17 @@ ingestion works, and do not trigger paid analysis runs without authorization.
 Use saved real reports or synthetic test fixtures clearly labeled as such.
 
 ## Agents: primary duties and decision boundaries
+
+### 0. Orchestrator Agent - development coordination owner
+
+- Coordinate the six existing specialist roles without replacing their decision authority.
+- Inspect the current repository before planning or assigning work.
+- Translate the user's objective into bounded tasks with owners, dependencies, acceptance criteria, and verification.
+- Sequence Insights metric contracts before chart design and implementation; arrange independent QA before release.
+- Track blockers and report actual validation results. Escalate paid runs, deployment, infrastructure/provider changes, evidence integrity issues, and major scope decisions to the user.
+- Do NOT create a second runtime orchestration system or replace the existing durable worker/queue.
+
+Full role and workflow: [docs/agents/orchestrator-agent.md](docs/agents/orchestrator-agent.md).
 
 ### 1. Product Manager (PM) - product scope and final acceptance
 
@@ -172,6 +183,8 @@ the Designer reviews and signs off on visual/interaction fidelity.
   broken evidence links, private-data leaks, or major usability regressions.
 
 ## Required cross-agent workflow
+
+The Orchestrator coordinates assignments, handoffs, blockers, and verification under [its dedicated contract](docs/agents/orchestrator-agent.md). PM and specialist decision rights remain unchanged.
 
 1. PM defines goals, priority and acceptance criteria.
 2. Insights Engineer establishes/verifies metric and evidence contracts.
