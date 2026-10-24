@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libgl1 libglib2.0-0 ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt requirements-worker.txt ./
+RUN pip install --no-cache-dir torch==2.12.1 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements-worker.txt
+RUN python -c "import whisper; whisper.load_model('base', download_root='/opt/whisper')"
+ENV XDG_CACHE_HOME=/opt MAX_SOURCE_DURATION_SECONDS=1800 MAX_SOURCE_BYTES=314572800
+COPY src ./src
+COPY main.py execute_source.py worker.py ./
+CMD ["python", "worker.py"]

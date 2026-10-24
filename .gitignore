@@ -4,3 +4,11 @@ __pycache__/
 data/
 .DS_Store
 .venv/
+
+frontend/dist/
+.vercel/
+.deploy-secrets.json
+.vercel
+.env*
+
+.env.*

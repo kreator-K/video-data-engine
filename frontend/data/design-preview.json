@@ -1,0 +1,512 @@
+{
+  "kind": "synthetic",
+  "title": "iPhone Duo  -  review intelligence",
+  "query": "iPhone Duo reviews",
+  "scope": "Synthetic UI test corpus",
+  "analyzed_at": "Illustrative design preview",
+  "sources": [
+    {
+      "id": "v1",
+      "title": "Illustrative reviewer video 01",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v2",
+      "title": "Illustrative reviewer video 02",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v3",
+      "title": "Illustrative reviewer video 03",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v4",
+      "title": "Illustrative reviewer video 04",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v5",
+      "title": "Illustrative reviewer video 05",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v6",
+      "title": "Illustrative reviewer video 06",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v7",
+      "title": "Illustrative reviewer video 07",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v8",
+      "title": "Illustrative reviewer video 08",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v9",
+      "title": "Illustrative reviewer video 09",
+      "status": "completed",
+      "url": null
+    },
+    {
+      "id": "v10",
+      "title": "Illustrative reviewer video 10",
+      "status": "completed",
+      "url": null
+    }
+  ],
+  "insights": [
+    {
+      "title": "Foldable-screen utility is a central review theme",
+      "description": "Reviewers repeatedly demonstrate the larger screen for multitasking while highlighting practical limitations in everyday use.",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v6",
+        "v7"
+      ],
+      "evidence_ids": [
+        "e1",
+        "e2",
+        "e4"
+      ],
+      "modality": "Said + shown"
+    },
+    {
+      "title": "Portability and ergonomics attract mixed reactions",
+      "description": "Hands-on demonstrations connect foldable design choices with differences in one-handed interactions.",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v3",
+        "v5",
+        "v7"
+      ],
+      "evidence_ids": [
+        "e2",
+        "e6"
+      ],
+      "modality": "Visual demonstration"
+    },
+    {
+      "title": "Camera perception depends on the comparison scenario",
+      "description": "The review examples discuss camera performance through specific photo situations, not one overall score.",
+      "source_ids": [
+        "v1",
+        "v3",
+        "v6",
+        "v7",
+        "v9"
+      ],
+      "evidence_ids": [
+        "e3",
+        "e7"
+      ],
+      "modality": "Said + shown"
+    },
+    {
+      "title": "Price and value remain recurring review topics",
+      "description": "Several reviews discuss the perceived trade-offs between a premium price and the use of the foldable form factor.",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v4",
+        "v6",
+        "v8"
+      ],
+      "evidence_ids": [
+        "e8"
+      ],
+      "modality": "Spoken commentary"
+    }
+  ],
+  "attributes": [
+    {
+      "name": "Display & folding experience",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v6",
+        "v7",
+        "v8",
+        "v9"
+      ],
+      "sentiment_counts": {
+        "positive": 14,
+        "neutral": 3,
+        "negative": 7
+      },
+      "driver": "Usability & immersion"
+    },
+    {
+      "name": "Design & build quality",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v7",
+        "v9"
+      ],
+      "sentiment_counts": {
+        "positive": 8,
+        "neutral": 4,
+        "negative": 6
+      },
+      "driver": "Hinge, weight, feel"
+    },
+    {
+      "name": "Camera performance",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v3",
+        "v5",
+        "v6",
+        "v7",
+        "v8"
+      ],
+      "sentiment_counts": {
+        "positive": 12,
+        "neutral": 5,
+        "negative": 6
+      },
+      "driver": "Color, detail, low light"
+    },
+    {
+      "name": "Battery life",
+      "source_ids": [
+        "v1",
+        "v3",
+        "v5",
+        "v6",
+        "v8",
+        "v10"
+      ],
+      "sentiment_counts": {
+        "positive": 6,
+        "neutral": 4,
+        "negative": 7
+      },
+      "driver": "Endurance, larger screen"
+    },
+    {
+      "name": "Multitasking software",
+      "source_ids": [
+        "v1",
+        "v3",
+        "v4",
+        "v5",
+        "v7",
+        "v9"
+      ],
+      "sentiment_counts": {
+        "positive": 8,
+        "neutral": 2,
+        "negative": 5
+      },
+      "driver": "Side-by-side apps"
+    },
+    {
+      "name": "Price & value",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v4",
+        "v6",
+        "v8"
+      ],
+      "sentiment_counts": {
+        "positive": 3,
+        "neutral": 4,
+        "negative": 7
+      },
+      "driver": "Premium-price evaluation"
+    }
+  ],
+  "themes": [
+    {
+      "name": "Everyday usability",
+      "description": "Small tasks on compact and unfolded screens.",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v6",
+        "v7"
+      ],
+      "evidence_ids": [
+        "e1",
+        "e2"
+      ]
+    },
+    {
+      "name": "Camera comparisons",
+      "description": "How sample images are presented alongside rival devices.",
+      "source_ids": [
+        "v1",
+        "v3",
+        "v6",
+        "v7"
+      ],
+      "evidence_ids": [
+        "e3",
+        "e7"
+      ]
+    },
+    {
+      "name": "Device longevity & value",
+      "description": "Durability, cost and upgrade considerations.",
+      "source_ids": [
+        "v1",
+        "v4",
+        "v5",
+        "v6",
+        "v8"
+      ],
+      "evidence_ids": [
+        "e8"
+      ]
+    }
+  ],
+  "comparisons": [
+    {
+      "competitor": "Samsung Galaxy Z Fold",
+      "is_direct": true,
+      "attribute": "Display experience",
+      "observation": "Illustrative reviewer contrasts larger-screen multitasking use and layout behavior.",
+      "source_ids": [
+        "v1",
+        "v3",
+        "v4",
+        "v6",
+        "v7",
+        "v9"
+      ],
+      "evidence_ids": [
+        "e1",
+        "e6"
+      ]
+    },
+    {
+      "competitor": "Samsung Galaxy Z Fold",
+      "is_direct": true,
+      "attribute": "Build and ergonomics",
+      "observation": "Illustrative side-by-side comparison discusses hinge feel and weight.",
+      "source_ids": [
+        "v1",
+        "v2",
+        "v6",
+        "v7"
+      ],
+      "evidence_ids": [
+        "e6"
+      ]
+    },
+    {
+      "competitor": "Google Pixel Fold",
+      "is_direct": true,
+      "attribute": "Camera quality",
+      "observation": "Illustrative comparison comments on photo differences in specified conditions.",
+      "source_ids": [
+        "v2",
+        "v3",
+        "v7",
+        "v10"
+      ],
+      "evidence_ids": [
+        "e3",
+        "e7"
+      ]
+    },
+    {
+      "competitor": "Google Pixel Fold",
+      "is_direct": true,
+      "attribute": "Software behavior",
+      "observation": "Illustrative visual comparison of app scaling behavior.",
+      "source_ids": [
+        "v4",
+        "v10"
+      ],
+      "evidence_ids": [
+        "e4"
+      ]
+    },
+    {
+      "competitor": "OnePlus Open",
+      "is_direct": true,
+      "attribute": "Price & value",
+      "observation": "Illustrative comparison of pricing context.",
+      "source_ids": [
+        "v5",
+        "v8"
+      ],
+      "evidence_ids": [
+        "e8"
+      ]
+    },
+    {
+      "competitor": "Apple iPhone Pro",
+      "is_direct": false,
+      "attribute": "Camera",
+      "observation": "Incidental named product, not a documented direct comparison.",
+      "source_ids": [
+        "v2",
+        "v3",
+        "v6",
+        "v8",
+        "v9",
+        "v10"
+      ],
+      "evidence_ids": []
+    }
+  ],
+  "evidence": [
+    {
+      "id": "e1",
+      "title": "Foldable display demonstrated",
+      "summary": "Display unfolds during multitasking",
+      "modality": "said + shown",
+      "source_id": "v1",
+      "timestamp": "03:24",
+      "spoken": "The larger display makes side-by-side tasks easier to follow.",
+      "shown": "Reviewer opens the device and operates two apps in split screen.",
+      "emoji": "\u25c8"
+    },
+    {
+      "id": "e2",
+      "title": "One-hand ergonomics",
+      "summary": "Physical interaction with device",
+      "modality": "shown",
+      "source_id": "v2",
+      "timestamp": "05:11",
+      "spoken": "The device feels less comfortable for quick one-handed tasks.",
+      "shown": "Reviewer tries reaching across the unfolded screen.",
+      "emoji": "\u25a3"
+    },
+    {
+      "id": "e3",
+      "title": "Camera sample comparison",
+      "summary": "Side-by-side camera demonstration",
+      "modality": "said + shown",
+      "source_id": "v3",
+      "timestamp": "08:42",
+      "spoken": "Image processing differs across these two devices.",
+      "shown": "Two labeled phones are shown beside captured photo samples.",
+      "emoji": "\u25c8"
+    },
+    {
+      "id": "e4",
+      "title": "Video multitasking",
+      "summary": "App resize and switching during use",
+      "modality": "shown",
+      "source_id": "v4",
+      "timestamp": "06:17",
+      "spoken": "There is an occasional layout change during app switching.",
+      "shown": "Reviewer switches from split screen to single application.",
+      "emoji": "\u25a3"
+    },
+    {
+      "id": "e5",
+      "title": "Battery discussion",
+      "summary": "Battery experience commentary",
+      "modality": "said",
+      "source_id": "v5",
+      "timestamp": "09:07",
+      "spoken": "Battery endurance depends on how often I use the larger panel.",
+      "shown": "Phone is held in hand; no measured battery test is visible.",
+      "emoji": "\u25d6"
+    },
+    {
+      "id": "e6",
+      "title": "Foldable phone comparison",
+      "summary": "Two phone designs placed together",
+      "modality": "said + shown",
+      "source_id": "v6",
+      "timestamp": "07:03",
+      "spoken": "The hinge feels different compared with the other foldable.",
+      "shown": "Reviewer holds two different foldable phone prototypes side-by-side.",
+      "emoji": "\u25c8"
+    },
+    {
+      "id": "e7",
+      "title": "Photo quality at night",
+      "summary": "Low light camera samples",
+      "modality": "said + shown",
+      "source_id": "v7",
+      "timestamp": "11:14",
+      "spoken": "The camera retains detail in this night scene.",
+      "shown": "Side-by-side nighttime samples appear in video frame.",
+      "emoji": "\u25c8"
+    },
+    {
+      "id": "e8",
+      "title": "Pricing conversation",
+      "summary": "Price-to-value trade-offs",
+      "modality": "said",
+      "source_id": "v8",
+      "timestamp": "12:19",
+      "spoken": "The premium price makes upgrades a harder decision.",
+      "shown": "Reviewer discusses pricing without on-screen comparisons.",
+      "emoji": "\u25d6"
+    }
+  ],
+  "word_phrases": [
+    {
+      "phrase": "foldable display",
+      "weight": 4
+    },
+    {
+      "phrase": "multitasking",
+      "weight": 4
+    },
+    {
+      "phrase": "camera",
+      "weight": 3
+    },
+    {
+      "phrase": "hinge",
+      "weight": 3
+    },
+    {
+      "phrase": "battery",
+      "weight": 2
+    },
+    {
+      "phrase": "one-handed use",
+      "weight": 3
+    },
+    {
+      "phrase": "price",
+      "weight": 3
+    },
+    {
+      "phrase": "software",
+      "weight": 2
+    },
+    {
+      "phrase": "build quality",
+      "weight": 2
+    }
+  ]
+}

@@ -1,7 +1,9 @@
 import json
+import os
 import re
+import httpx
 from pathlib import Path
-from openai import OpenAI
+from openai import OpenAI, APITimeoutError
 from dotenv import load_dotenv
 from src.json_utils import parse_json_object
 from src.model_config import nvidia_api_key, report_model
@@ -9,8 +11,61 @@ from src.nvidia import build_nvidia_client, build_nvidia_clients, call_with_clie
 
 load_dotenv()
 
-# Using Nvidia for synthesis too — free, text-only model
+# NVIDIA is primary; context limits and timeouts fall back to Anthropic.
 client = build_nvidia_client(nvidia_api_key())
+
+
+def is_provider_timeout(exc: Exception) -> bool:
+    """Recognize typed timeouts through the key-rotation exception chain."""
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, (APITimeoutError, httpx.TimeoutException, TimeoutError)):
+            return True
+        exc = exc.__cause__
+    return False
+
+
+def is_context_limit_error(exc: Exception) -> bool:
+    """Inspect the original provider error wrapped by key rotation."""
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        message = str(exc).lower()
+        if getattr(exc, "status_code", None) in (400, 413, 422) and any(
+            marker in message for marker in (
+                "maximum context length", "context_length_exceeded",
+                "context window", "prompt is too long", "too many tokens",
+            )
+        ):
+            return True
+        exc = exc.__cause__
+    return False
+
+
+def anthropic_report(prompt: str) -> tuple[str, str]:
+    key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        raise RuntimeError("NVIDIA context limit exceeded; set ANTHROPIC_API_KEY for report fallback.")
+    model = os.getenv("ANTHROPIC_REPORT_MODEL", "claude-sonnet-4-5")
+    response = httpx.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
+        json={"model": model, "max_tokens": 4096,
+              "messages": [{"role": "user", "content": prompt}]},
+        timeout=120.0,
+        follow_redirects=False,
+    )
+    if response.is_error:
+        raise RuntimeError(f"Anthropic report fallback failed (HTTP {response.status_code}).")
+    payload = response.json()
+    if payload.get("stop_reason") == "max_tokens":
+        raise RuntimeError("Anthropic report fallback was truncated.")
+    raw = "".join(block.get("text", "") for block in payload.get("content", [])
+                  if block.get("type") == "text").strip()
+    if not raw:
+        raise RuntimeError("Anthropic report fallback returned no text.")
+    return raw, model
 
 REPORT_DEFAULTS = {
     "video_summary": "",
@@ -335,17 +390,29 @@ Return ONLY valid JSON. No explanation, no markdown."""
 
     print("\nSynthesising insights...")
 
-    response, _ = call_with_client_fallback(
-        nvidia_clients(),
-        lambda api_client: api_client.chat.completions.create(
-            model=report_model(),
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,
-        ),
-        "NVIDIA synthesis call failed; retrying with the next configured key.",
-    )
-
-    raw = response.choices[0].message.content.strip()
+    provider, model = "nvidia", report_model()
+    fallback_reason = None
+    try:
+        response, _ = call_with_client_fallback(
+            nvidia_clients(),
+            lambda api_client: api_client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=1000,
+            ),
+            "NVIDIA synthesis call failed; retrying with the next configured key.",
+        )
+        raw = response.choices[0].message.content.strip()
+    except Exception as exc:
+        if is_context_limit_error(exc):
+            fallback_reason = "nvidia_context_limit"
+        elif is_provider_timeout(exc):
+            fallback_reason = "nvidia_timeout"
+        else:
+            raise
+        print("NVIDIA synthesis unavailable; generating report with Anthropic.")
+        raw, model = anthropic_report(prompt)
+        provider = "anthropic"
 
     try:
         report = parse_json_object(raw)
@@ -364,6 +431,10 @@ Return ONLY valid JSON. No explanation, no markdown."""
             "No brand, company, shop, restaurant, or firm name was present in the analysed frames, on-screen text, audio transcript, or video description, "
             "so there is no brand-specific positioning gap to assess."
         )
+    merged["report_provider_used"] = provider
+    merged["report_model_used"] = model
+    if provider == "anthropic":
+        merged["report_fallback_reason"] = fallback_reason
     return merged
 
 

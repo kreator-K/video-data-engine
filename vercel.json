@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {"web": {"root": ".", "runtime": "container", "entrypoint": "Dockerfile.vercel"}},
+  "rewrites": [{"source": "/(.*)", "destination": {"service": "web"}}],
+  "daemons": {"analysis-worker": {"root": ".", "entrypoint": "Dockerfile.worker", "instances": {"iad1": 1}, "terminationGracePeriodSeconds": 20}}
+}

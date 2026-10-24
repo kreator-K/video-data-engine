@@ -1,5 +1,54 @@
 # Video Data Agent
 
+Report synthesis uses NVIDIA first. If NVIDIA rejects a report because it exceeds
+the model's context limit, the full prompt is sent to Anthropic using
+`ANTHROPIC_API_KEY`. The fallback model defaults to `claude-sonnet-4-5` and can be
+overridden with `ANTHROPIC_REPORT_MODEL`. Reports record `report_provider_used`,
+`report_model_used`, and, when applicable, `report_fallback_reason`.
+Authentication, quota, and other unrelated errors do not trigger this fallback.
+Anthropic fallback requests use Anthropic API credits.
+
+## Search and analyze ten videos
+
+Enter a search phrase in the dashboard and select **Search & analyze 10 videos**,
+or run:
+
+```bash
+.venv/bin/python run_search.py "wireless headphones reviews"
+```
+
+YouTube search selects up to ten unique non-live results in search order. Each
+video goes through the existing download, frame extraction, Whisper, vision,
+and synthesis pipeline. Failures are recorded and remaining videos continue.
+Search manifests and per-video outcomes are saved in `data/search_runs/`.
+The dashboard displays job progress and the saved per-video results. Search runs
+use the configured vision and synthesis API credentials. Keep the local server
+running until the job finishes; jobs do not resume automatically after restart.
+
+## Brand intelligence frontend
+
+Run `.venv/bin/python serve_frontend.py` from the repository root and open
+[the local dashboard](http://127.0.0.1:4173). Browse existing saved results or match
+saved video titles using a topic. The frontend does not start paid analysis.
+
+See [the implementation report](docs/frontend-integration-report.md) for connected
+APIs, evidence coverage, limitations and validation. Build the dependency-free
+frontend with `.venv/bin/python build_frontend.py`.
+
+## Current visual analysis provider
+
+Visual analysis now defaults to Anthropic's native Messages API. Set
+`ANTHROPIC_API_KEY` in your local ignored `.env` file before running the pipeline.
+Use `VISION_PROVIDER=anthropic`; optionally set `ANTHROPIC_VISION_MODEL`
+(default: `claude-sonnet-4-5`). No OpenAI key is needed for this path.
+The existing NVIDIA report synthesis and local Whisper transcription remain in use.
+Anthropic failures are reported without silently switching providers.
+
+The legacy OpenAI-compatible vision path remains available only when explicitly
+selected with `VISION_PROVIDER=openai`; historical OpenAI setup examples below
+apply to that path.
+
+
 **A multimodal AI agent that extracts brand intelligence from short-form video.**
 
 Brands spend $800-1500/month on tools like Brandwatch or Sprout Social to track
@@ -105,24 +154,35 @@ swapped for a hosted vision model if cost or deployment constraints change.
 
 ## Setup
 
-Create and activate a Conda environment:
+Use Homebrew Python 3.11 to create and activate the project environment:
 
 ```bash
-conda create -n video-agent python=3.11
-conda activate video-agent
+brew install python@3.11 ffmpeg
+/opt/homebrew/bin/python3.11 -m venv .venv
+source .venv/bin/activate
 ```
 
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt openai opencv-python openai-whisper
+python -m pip install -r requirements.txt -c requirements-macos-py311.lock.txt
+python -m pip install -r requirements-dev.txt
+python -m pip check
+python -m pytest -q
 ```
 
-Install FFmpeg:
+FFmpeg is installed by the Homebrew command above. In your editor, select
+`.venv/bin/python` as the Python interpreter.
+
+To check local video processing without API calls, use an existing video and
+the cached Whisper `base` model:
 
 ```bash
-brew install ffmpeg
+python tests/local_video_smoke.py "data/videos/Me at the zoo.mp4"
 ```
+
+See [the migration record](docs/python-environment-migration.md) for verification
+results and rollback locations.
 
 Create `.env` in the project root:
 
@@ -198,7 +258,7 @@ cookies, which produces warnings like `cannot decrypt v10 cookies`.
 ## Run
 
 ```bash
-conda activate video-agent
+source .venv/bin/activate
 python main.py "https://youtube.com/shorts/your-video-id"
 ```
 
@@ -468,3 +528,7 @@ src/synthesiser.py          # Final report generation
 docs/sample_output/         # Example report
 eval/                       # Golden dataset and model evaluation script
 ```
+
+### Mac-assisted hosted testing
+
+The protected hosted app can use this Mac as its video-processing worker. The Vercel daemon is scaled to zero while cloud YouTube ingestion is blocked. Start the regular worker with `caffeinate -i .venv/bin/python scripts/run_mac_worker.py`; keep the Mac awake and online, and stop it with Ctrl+C when launched in your terminal. Provider/download settings remain local, while reports and immutable evidence are persisted to the linked cloud database. See [Mac worker testing](docs/mac-worker-testing.md) for setup and verified acceptance results. This configuration is approved for protected testing and requires the Mac to remain available.

@@ -1,6 +1,9 @@
 import openai
 import base64
 import json
+import os
+from types import SimpleNamespace
+import httpx
 from pathlib import Path
 from dotenv import load_dotenv
 from src.json_utils import parse_json_object
@@ -30,7 +33,7 @@ def build_client() -> openai.OpenAI:
     return openai.OpenAI(**kwargs)
 
 
-client = build_client()
+client = None  # Legacy clients are created only when explicitly selected.
 NO_VISIBLE_BRAND_MESSAGE = "No visible brand, company, shop, restaurant, or firm name detected."
 
 VISION_PROMPT = """Analyse this video frame for brand intelligence.
@@ -93,7 +96,44 @@ def create_vision_completion(api_client: openai.OpenAI, model: str, base64_image
     )
 
 
+def create_anthropic_completion(base64_image: str):
+    key = os.getenv("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError("Set ANTHROPIC_API_KEY locally before running visual analysis.")
+    model = os.getenv("ANTHROPIC_VISION_MODEL", "claude-sonnet-4-5")
+    # Use the native Messages API; keep credentials and image data server-side.
+    response = httpx.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01"},
+        json={
+            "model": model,
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64_image}},
+                {"type": "text", "text": VISION_PROMPT},
+            ]}],
+        },
+        timeout=api_request_timeout_seconds(),
+        follow_redirects=False,
+    )
+    if response.is_error:
+        raise RuntimeError(f"Anthropic visual analysis failed (HTTP {response.status_code}).")
+    payload = response.json()
+    if payload.get("stop_reason") == "max_tokens":
+        raise RuntimeError("Anthropic visual analysis response was truncated.")
+    raw = "".join(block.get("text", "") for block in payload.get("content", []) if block.get("type") == "text")
+    if not raw.strip():
+        raise RuntimeError("Anthropic returned no visual analysis text.")
+    # Normalize at the provider boundary to preserve the existing parsing contract.
+    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=raw))]), model, "anthropic"
+
+
 def create_completion_with_fallback(base64_image: str):
+    if os.getenv("VISION_PROVIDER", "anthropic").lower() == "anthropic":
+        return create_anthropic_completion(base64_image)
+    global client
+    if client is None:
+        client = build_client()
     try:
         return create_vision_completion(client, vision_model(), base64_image), vision_model(), "primary"
     except Exception as exc:

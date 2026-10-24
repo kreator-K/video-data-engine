@@ -1,4 +1,5 @@
 import cv2
+import json
 from pathlib import Path
 
 
@@ -28,6 +29,7 @@ def extract_frames(video_path: str, output_dir: str = "data/frames", interval_se
     frame_interval = int(fps * interval_seconds)
 
     frame_paths = []
+    frame_manifest = []
     frame_count = 0
     saved_count = 0
 
@@ -46,11 +48,13 @@ def extract_frames(video_path: str, output_dir: str = "data/frames", interval_se
             frame_path = frames_dir / f"frame_{saved_count:04d}.jpg"
             cv2.imwrite(str(frame_path), frame)
             frame_paths.append(str(frame_path))
+            frame_manifest.append({"frame": frame_path.name, "timestamp_seconds": frame_count / fps})
             saved_count += 1
 
         frame_count += 1
 
     video.release()
+    (frames_dir / "frame_manifest.json").write_text(json.dumps({"frames": frame_manifest, "duration_seconds": duration}))
 
     print(f"✓ Extracted {saved_count} frames → {frames_dir}")
     return frame_paths

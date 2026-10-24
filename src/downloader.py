@@ -46,9 +46,23 @@ FORMAT_SELECTORS = [
 ]
 
 
+def duration_guard(info, *, incomplete=False):
+    limit = os.getenv('MAX_SOURCE_DURATION_SECONDS')
+    if not limit:
+        return None
+    duration=info.get('duration')
+    if duration is not None and duration>int(limit):
+        return 'Video exceeds the configured analysis duration limit.'
+    if duration is None and not incomplete:
+        return 'Video duration could not be verified.'
+    return None
+
+
 def base_ydl_options(output_dir: str, cookie_options: dict | None = None) -> dict:
     return {
         "format": FORMAT_SELECTORS[0],
+        "match_filter": duration_guard,
+        "max_filesize": int(os.getenv("MAX_SOURCE_BYTES", str(300*1024*1024))),
         "format_sort": ["res:720", "ext:mp4:m4a"],
         "merge_output_format": "mp4",
         "outtmpl": f"{output_dir}/%(title)s.%(ext)s",

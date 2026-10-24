@@ -9,6 +9,14 @@ from unittest.mock import Mock
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def legacy_vision_provider(monkeypatch):
+    # Existing regression cases explicitly exercise the legacy provider path.
+    monkeypatch.setenv("VISION_PROVIDER", "openai")
+    import src.vision_analyser as vision
+    monkeypatch.setattr(vision, "client", SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=Mock()))))
+
+
 def write_json(path: Path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2) + "\n")

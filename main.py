@@ -3,7 +3,7 @@ from src.downloader import download_video
 from src.frame_extractor import extract_frames
 from src.transcriber import transcribe_video
 from src.vision_analyser import analyse_video_frames
-from src.synthesiser import load_video_data, synthesise_insights
+from src.synthesiser import synthesise_insights
 from pathlib import Path
 import json
 
@@ -34,13 +34,17 @@ def run_pipeline(url: str):
     print("\n[4/5] Analysing frames...")
     frames_dir = str(Path("data/frames") / video_name)
     vision_results = analyse_video_frames(frames_dir)
-    good = [r for r in vision_results if "error" not in r]
+    good = [r for r in vision_results if "error" not in r and isinstance(r.get("brands"), list)]
     print(f"✓ {len(good)}/{len(vision_results)} frames analysed")
+    if not good:
+        raise RuntimeError("No frames were successfully analyzed; report synthesis stopped.")
 
     # Step 5: Synthesise
     print("\n[5/5] Synthesising brand intelligence...")
-    video_data = load_video_data(video_name)
+    video_data = {"video_name": video_name, "metadata": metadata, "transcript": transcript, "vision": vision_results}
     report = synthesise_insights(video_data)
+    if not isinstance(report, dict) or not report.get("video_summary") or "raw_report" in report:
+        raise RuntimeError("Synthesis did not produce a valid report with a video summary.")
 
     # Save final report
     output_path = Path("data/frames") / video_name / "brand_intelligence_report.json"
@@ -49,11 +53,13 @@ def run_pipeline(url: str):
 
     # Print final report
     print("\n" + "="*50)
+
     print("   BRAND INTELLIGENCE REPORT")
     print("="*50)
     print(f"\nVideo:    {video_name}")
     print(f"Channel:  {metadata.get('channel')}")
-    print(f"Views:    {metadata.get('view_count'):,}")
+    views = metadata.get('view_count')
+    print(f"Views:    {views:,}" if isinstance(views, int) else "Views:    unavailable")
     print(f"\nSummary:\n{report.get('video_summary')}")
     print(f"\nBrand Presence:\n{report.get('brand_presence_summary')}")
     print(f"\nBrand Visibility:\n{report.get('brand_visibility_summary')}")
@@ -65,6 +71,7 @@ def run_pipeline(url: str):
     print(f"\nPositioning Gap:\n{report.get('positioning_gap')}")
     print(f"\n✓ Full report saved to: {output_path}")
     print("\n" + "="*50)
+    return output_path
 
 
 if __name__ == "__main__":

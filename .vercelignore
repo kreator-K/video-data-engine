@@ -1,0 +1,14 @@
+.git
+.env*
+.venv
+data
+eval
+tests
+*.zip
+.pytest_cache
+__pycache__
+frontend/dist
+
+.deploy-secrets.json
+.agents
+.codex

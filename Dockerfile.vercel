@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY api/requirements.txt ./requirements-http.txt
+RUN pip install --no-cache-dir -r requirements-http.txt gunicorn==23.0.0
+COPY src ./src
+COPY frontend ./frontend
+COPY app.py ./
+ENV STUDIO_ENV=production
+EXPOSE 80
+CMD ["gunicorn", "--bind", "0.0.0.0:80", "--workers", "2", "--threads", "4", "--timeout", "30", "--access-logfile", "-", "app:application"]
