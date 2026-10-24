@@ -1,534 +1,191 @@
 # Video Data Agent
 
-Report synthesis uses NVIDIA first. If NVIDIA rejects a report because it exceeds
-the model's context limit, the full prompt is sent to Anthropic using
-`ANTHROPIC_API_KEY`. The fallback model defaults to `claude-sonnet-4-5` and can be
-overridden with `ANTHROPIC_REPORT_MODEL`. Reports record `report_provider_used`,
-`report_model_used`, and, when applicable, `report_fallback_reason`.
-Authentication, quota, and other unrelated errors do not trigger this fallback.
-Anthropic fallback requests use Anthropic API credits.
+A video-native brand and product insights studio. Enter a topic, optionally add YouTube references, and analyze up to ten source videos through the existing multimodal pipeline. Findings link to source videos, transcript timestamps, and sampled visual evidence.
 
-## Search and analyze ten videos
+## Current status
 
-Enter a search phrase in the dashboard and select **Search & analyze 10 videos**,
-or run:
+The [protected hosted app](https://video-data-agent-glomeyo.vercel.app) is approved for **Mac-assisted testing**. The frontend and authenticated API run on Vercel, reports and immutable evidence live in the linked PostgreSQL database, and a worker on the Mac processes queued jobs.
 
-```bash
-.venv/bin/python run_search.py "wireless headphones reviews"
-```
+The autonomous Vercel worker is disabled: YouTube rejected downloads from its datacenter environment with a bot-verification challenge. Moving processing to the Mac passed a fresh end-to-end acceptance run. The Mac must remain awake, online, and running the worker. This is not approval for an independently available cloud production service.
 
-YouTube search selects up to ten unique non-live results in search order. Each
-video goes through the existing download, frame extraction, Whisper, vision,
-and synthesis pipeline. Failures are recorded and remaining videos continue.
-Search manifests and per-video outcomes are saved in `data/search_runs/`.
-The dashboard displays job progress and the saved per-video results. Search runs
-use the configured vision and synthesis API credentials. Keep the local server
-running until the job finishes; jobs do not resume automatically after restart.
+Latest verification:
 
-## Brand intelligence frontend
+- 139 Python tests passed; one opt-in PostgreSQL test skipped in the standard suite. A separate live PostgreSQL acceptance run passed.
+- Frontend logic, build, reconnect, identifier-preservation, and copy checks passed.
+- Independent QA verified a fresh one-video Mac run: seven spoken-evidence entries matched original text and timestamps, and three hosted images matched original frame hashes.
+- The fresh report contained four grounded attributes and zero direct comparisons. Its completed history entry and report reopened correctly through the hosted API.
+- QA also verified the saved ten-video dataset: 223 spoken-evidence entries and 30 source images.
 
-Run `.venv/bin/python serve_frontend.py` from the repository root and open
-[the local dashboard](http://127.0.0.1:4173). Browse existing saved results or match
-saved video titles using a topic. The frontend does not start paid analysis.
+See [independent QA](docs/qa-independent-regression.md), [Mac worker testing](docs/mac-worker-testing.md), and [deployment readiness](docs/production-readiness-qa.md).
 
-See [the implementation report](docs/frontend-integration-report.md) for connected
-APIs, evidence coverage, limitations and validation. Build the dependency-free
-frontend with `.venv/bin/python build_frontend.py`.
+## What the studio shows
 
-## Current visual analysis provider
+- Evidence-backed brand insights and product attribute sentiment.
+- Direct competitor comparisons and the most-compared product, when supported by explicit source quotations.
+- Recurring themes and video-by-attribute coverage.
+- Timestamped transcript evidence and sampled visual moments.
+- Genuine job progress and completed analysis history.
 
-Visual analysis now defaults to Anthropic's native Messages API. Set
-`ANTHROPIC_API_KEY` in your local ignored `.env` file before running the pipeline.
-Use `VISION_PROVIDER=anthropic`; optionally set `ANTHROPIC_VISION_MODEL`
-(default: `claude-sonnet-4-5`). No OpenAI key is needed for this path.
-The existing NVIDIA report synthesis and local Whisper transcription remain in use.
-Anthropic failures are reported without silently switching providers.
+Only completed jobs enter saved analysis history. Empty or failed runs do not produce invented findings. Comparison coverage counts distinct videos rather than repeated mentions. Sentiment describes coded reviewer observations, not a representative consumer survey. The synthetic design fixture is for local UI preview and is unavailable in production.
 
-The legacy OpenAI-compatible vision path remains available only when explicitly
-selected with `VISION_PROVIDER=openai`; historical OpenAI setup examples below
-apply to that path.
+Frontend text must never display Unicode U+2014. Dynamic display text is normalized at the rendering boundary; raw evidence, identifiers, URLs, and backend analysis remain intact. The frontend build enforces this rule.
 
-
-**A multimodal AI agent that extracts brand intelligence from short-form video.**
-
-Brands spend $800-1500/month on tools like Brandwatch or Sprout Social to track
-text mentions, but those tools do not understand what is happening inside a
-video. This agent watches a video the way a brand manager would: it reads the
-visuals, listens to the audio, and writes a structured intelligence report.
-
-Paste a YouTube URL. Get a brand report in under 60 seconds.
-
-```bash
-python main.py "https://youtube.com/shorts/..."
-```
-
-## Example Output
-
-Run on a cooking video with millions of views:
-
-```json
-{
-  "video_summary": "A short cooking video showcasing a one-pan coconut red curry pasta recipe with chicken.",
-  "primary_brands": ["Chi", "Coca-Cola"],
-  "brand_presence_summary": "Brand/name evidence found: Chi, Coca-Cola.",
-  "brand_visibility_summary": "Visible brand/name detected: Chi, Coca-Cola.",
-  "visible_brand_count": 2,
-  "brand_evidence": {
-    "visible_in_frames": ["Chi", "Coca-Cola"],
-    "on_screen_text": [],
-    "mentioned_in_audio": [],
-    "mentioned_in_description": []
-  },
-  "all_detected_brand_names": ["Chi", "Coca-Cola"],
-  "brand_context": {
-    "Chi": {
-      "positive": true,
-      "context": "product placement in a cooking video"
-    },
-    "Coca-Cola": {
-      "positive": false,
-      "context": "product placement in a cooking video, but not a central focus"
-    }
-  },
-  "brand_manager_actions": [
-    "Consider partnering with Chi for future product placements to reach a young adult audience interested in cooking.",
-    "Monitor the use of Coca-Cola in the video and assess its relevance to the brand's marketing strategy.",
-    "Analyze the content's engagement signals to determine the effectiveness of the video in reaching its target audience."
-  ],
-  "positioning_gap": "The video could benefit from more detailed information about the recipe, such as ingredient quantities and cooking times, to make it more useful for viewers."
-}
-```
-
-When no readable brand, company, shop, restaurant, or firm name appears in the
-analysed frames, the report keeps `primary_brands` as `[]` and returns:
-
-```json
-{
-  "brand_presence_summary": "No brand, company, shop, restaurant, or firm name detected in frames, on-screen text, audio transcript, or video description.",
-  "brand_visibility_summary": "No visible brand, company, shop, restaurant, or firm name detected in the analysed frames.",
-  "visible_brand_count": 0
-}
-```
-
-Brand evidence is tracked by source:
-
-- `visible_in_frames` - readable logos, packaging, shop/restaurant signs, app icons, or watermarks in frames
-- `on_screen_text` - names printed in captions or other visible video text
-- `mentioned_in_audio` - names spoken in the transcript
-- `mentioned_in_description` - names present in the video description/caption metadata
-
-Full sample: [`docs/sample_output/sample_report.json`](docs/sample_output/sample_report.json)
-
-## How It Works
+## Architecture
 
 ```text
-YouTube URL
-    |
-    |-> downloader.py        -> video + metadata (yt-dlp)
-    |
-    |-> frame_extractor.py   -> keyframes every 2s (OpenCV)
-    |
-    |-> transcriber.py       -> timestamped transcript (Whisper, local)
-    |
-    |-> vision_analyser.py   -> per-frame brand detection (OpenAI vision)
-    |
-    `-> synthesiser.py       -> brand intelligence report (Llama 3.1 via Nvidia NIM)
+Browser dashboard
+    -> authenticated HTTP API on Vercel
+    -> durable PostgreSQL job queue
+    -> Mac worker claims and renews a job lease
+    -> isolated original video pipeline
+         yt-dlp download + metadata
+         OpenCV frame extraction + timestamp manifest
+         local Whisper transcription
+         Anthropic frame analysis
+         NVIDIA report synthesis, with bounded Anthropic fallback
+         transcript-grounded attribute and comparison extraction
+    -> persisted report + immutable, content-addressed evidence
+    -> dashboard polls status and opens completed results
 ```
 
-Each module runs independently and can be tested standalone, or chained together
-through `main.py` for a single end-to-end run.
+The local dashboard uses SQLite by default and starts a separate worker process. Hosted operation uses PostgreSQL. Jobs have ownership checks, admission quotas, leases, and stale-worker fencing. Interrupted in-flight paid work is not silently replayed; untouched queued sources can resume. Evidence images require access to an owning completed analysis.
 
-## Stack
+## Local setup
 
-| Layer | Tool |
-| --- | --- |
-| Video download | yt-dlp |
-| Frame extraction | OpenCV |
-| Transcription | OpenAI Whisper, local |
-| Vision analysis | OpenAI vision model |
-| Synthesis | Meta Llama 3.1 8B via Nvidia NIM |
+On Apple Silicon macOS:
 
-Whisper runs locally, so transcription does not add API cost. The synthesis step
-uses Nvidia's hosted API tier. The vision layer currently uses OpenAI and can be
-swapped for a hosted vision model if cost or deployment constraints change.
-
-## Setup
-
-Use Homebrew Python 3.11 to create and activate the project environment:
-
-```bash
+```sh
 brew install python@3.11 ffmpeg
 /opt/homebrew/bin/python3.11 -m venv .venv
 source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
 python -m pip install -r requirements.txt -c requirements-macos-py311.lock.txt
 python -m pip install -r requirements-dev.txt
 python -m pip check
-python -m pytest -q
 ```
 
-FFmpeg is installed by the Homebrew command above. In your editor, select
-`.venv/bin/python` as the Python interpreter.
+Select `.venv/bin/python` as the editor interpreter. See the [Python environment record](docs/python-environment-migration.md) for environment details.
 
-To check local video processing without API calls, use an existing video and
-the cached Whisper `base` model:
+Create an ignored `.env` in the repository root:
 
-```bash
-python tests/local_video_smoke.py "data/videos/Me at the zoo.mp4"
+```dotenv
+VISION_PROVIDER=anthropic
+ANTHROPIC_API_KEY=your_anthropic_key
+NVIDIA_API_KEY=your_nvidia_key
 ```
 
-See [the migration record](docs/python-environment-migration.md) for verification
-results and rollback locations.
+Optional settings:
 
-Create `.env` in the project root:
-
-```text
-OPENAI_API_KEY=your_openai_key_here
-NVIDIA_API_KEY=your_nvidia_key_here
-```
-
-`OPENAI_API_KEY` powers the primary frame-level vision analysis when the default
-OpenAI vision model is used. `NVIDIA_API_KEY` or `NVIDIA_API_KEYS` powers the
-NVIDIA vision fallback and the final text synthesis step.
-
-If you have multiple NVIDIA keys, use `NVIDIA_API_KEYS` instead. Separate keys
-with commas; the pipeline will try the next key if one fails or hits a limit:
-
-```text
-NVIDIA_API_KEYS=nvapi-key-one,nvapi-key-two,nvapi-key-three
-```
-
-Moonshot keys work the same way:
-
-```text
-MOONSHOT_API_KEYS=moonshot-key-one,moonshot-key-two
-MOONSHOT_BASE_URL=https://api.moonshot.ai/v1
-```
-
-Optional model/download settings:
-
-```text
-VISION_MODEL=gpt-4o
-VISION_BASE_URL=
-VISION_API_KEY=
+```dotenv
+ANTHROPIC_VISION_MODEL=claude-sonnet-4-5
+ANTHROPIC_REPORT_MODEL=claude-sonnet-4-5
 REPORT_MODEL=meta/llama-3.1-8b-instruct
-NVIDIA_VISION_MODEL=meta/llama-3.2-90b-vision-instruct
-NVIDIA_API_KEYS=nvapi-key-one,nvapi-key-two
-MOONSHOT_API_KEYS=moonshot-key-one,moonshot-key-two
-YTDLP_COOKIES_FILE=/path/to/cookies.txt
-YTDLP_COOKIES_BROWSER=chrome
+# Use NVIDIA_API_KEYS instead of NVIDIA_API_KEY for comma-separated keys.
+# Configure local download authentication only if required:
+# YTDLP_COOKIES_BROWSER=chrome
+# YTDLP_COOKIES_FILE=/absolute/path/to/cookies.txt
 ```
 
-Use `YTDLP_COOKIES_FILE` or `YTDLP_COOKIES_BROWSER` only when YouTube Shorts
-return 403, consent, age, or bot-check errors. Public/no-cookie download is
-tried first because browser cookies can push some public Shorts onto YouTube's
-SABR/challenge path where yt-dlp may only see image/storyboard formats.
-Downloaded titles are normalized before frame extraction so OpenCV receives the
-actual saved file path.
+No OpenAI API key is needed for the configured Anthropic vision path. Whisper runs locally. Anthropic and NVIDIA calls use the configured accounts and may incur charges. Never commit credentials or export browser cookies to cloud hosting as part of ordinary setup.
 
-### yt-dlp Format Troubleshooting
+NVIDIA is the primary report synthesizer. Context-limit errors and typed provider timeouts fall back to Anthropic with the same evidence prompt. Authentication, rate-limit, and invalid-model errors do not trigger that fallback. Reports retain provider, model, and fallback-reason metadata internally.
 
-YouTube Shorts can expose different format sets by region, age/auth state, or
-client profile. If yt-dlp says `requested format is not available`, it means the
-specific video/audio selector could not be matched for that URL. The downloader
-now tries these fallbacks automatically:
+### Start the local dashboard
 
-1. mp4 video up to 720p plus m4a audio
-2. any video/audio pair up to 720p
-3. broad `bv*+ba/best` fallback
-4. cookie-based fallbacks only after public attempts fail
-
-If every fallback fails, the error prints the attempted selectors and the
-available formats returned by yt-dlp. That tells us whether the issue is format
-selection, cookies/auth, a private/removed video, or a YouTube extraction change.
-
-For cookie-gated videos, prefer exporting a cookie file and setting:
-
-```text
-YTDLP_COOKIES_FILE=/path/to/cookies.txt
+```sh
+.venv/bin/python serve_frontend.py
 ```
 
-`YTDLP_COOKIES_BROWSER=chrome` can work, but macOS may block/decrypt zero
-cookies, which produces warnings like `cannot decrypt v10 cookies`.
+Open [localhost:4173](http://127.0.0.1:4173). The server starts a separate local worker unless `--no-worker` is supplied. Starting an analysis can make real provider calls. Keep the server and worker running while processing.
 
-## Run
+### Process hosted jobs on the Mac
 
-```bash
-source .venv/bin/activate
-python main.py "https://youtube.com/shorts/your-video-id"
+The repository must already be linked to the intended Vercel project. Pull its configuration into an ignored file using an authorized Vercel account:
+
+```sh
+vercel env pull .env.vercel.local
+caffeinate -i .venv/bin/python scripts/run_mac_worker.py
 ```
 
-Outputs land in:
+The launcher reads provider and download settings from `.env` and the linked PostgreSQL connection from `.env.vercel.local`. No inbound Mac port or tunnel is required. Stop a foreground worker with Ctrl+C. The cloud daemon currently has an `iad1=0` scaling override to prevent it consuming these test jobs; leave it disabled until cloud ingestion is resolved.
 
-- `data/videos/` - video file, metadata, and transcript
-- `data/frames/<video-name>/` - extracted frames, vision analysis, and final report
+Detailed operational notes and the one-shot acceptance utility are in [Mac worker testing](docs/mac-worker-testing.md).
 
-The terminal prints the brand intelligence report at the end of each full run.
+## Command-line processing
 
-## Batch Run
+Single video:
 
-Put URLs in a text file:
-
-```text
-https://youtube.com/shorts/video-1
-https://youtube.com/shorts/video-2
-https://youtube.com/shorts/video-3
+```sh
+.venv/bin/python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-Run the batch:
+Topic discovery and analysis:
 
-```bash
-python run_batch.py --file urls.txt
+```sh
+.venv/bin/python run_search.py "wireless headphones reviews"
 ```
 
-You can also paste URLs through stdin:
+Discovery selects up to ten unique eligible non-live sources and filters obvious promotional, trailer, and rumor titles for review queries. Eligibility filtering does not guarantee that every result is a substantive review. Failures are recorded and remaining sources continue; displayed coverage reflects actual completed sources.
 
-```bash
-pbpaste | python run_batch.py --stdin
+Batch URLs:
+
+```sh
+.venv/bin/python run_batch.py --file urls.txt
 ```
 
-Or pass URLs directly:
+The batch runner also accepts positional URLs or `--stdin`, with `--dry-run`, `--no-dedupe`, `--stop-on-error`, and `--log-dir` options.
 
-```bash
-python run_batch.py "https://youtube.com/shorts/video-1" "https://youtube.com/shorts/video-2"
+CLI artifacts are written under `data/videos/`, `data/frames/`, `data/search_runs/`, or `data/batch_runs/`. Hosted worker subprocess artifacts use isolated temporary workspaces; completed reports and selected immutable images are persisted to the database before cleanup. Runtime artifacts are excluded from Git.
+
+## API and access
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/searches` | Admit a durable analysis job |
+| `GET /api/searches/{id}` | Read owned job progress or completed result |
+| `GET /api/analyses` | List owned completed analyses |
+| `GET /api/analyses/{id}` | Open an owned completed report |
+| `GET /api/evidence/{sha256}.jpg` | Retrieve an authorized immutable evidence image |
+
+Hosted requests require application authentication in addition to Vercel deployment protection. User credentials are configured server-side through `STUDIO_USERS_JSON`; they are not embedded in frontend assets. Production fails closed when authentication or database configuration is missing. The local server is restricted to loopback hosts by default.
+
+The normal configured admission limits are one active job per user, three daily jobs per user, ten daily jobs globally, and four pending jobs. Failed admitted jobs count toward daily limits. Disposable acceptance fixtures are managed separately from actual user analyses.
+
+## Validation
+
+```sh
+.venv/bin/python -m pytest -q
+.venv/bin/python build_frontend.py
 ```
 
-By default, duplicate URLs are skipped and one failed URL does not stop the
-batch. Per-video logs and summary files are saved to:
+The standard suite uses deterministic provider stubs and local stores. It does not prove live provider availability. The PostgreSQL acceptance test is opt-in through `QA_POSTGRES_URL`; supply it securely without printing connection details.
 
-```text
-data/batch_runs/<timestamp>/
+For local media processing without model API calls, use an available video and cached Whisper model:
+
+```sh
+.venv/bin/python tests/local_video_smoke.py "/absolute/path/to/video.mp4"
 ```
 
-Useful options:
-
-- `--dry-run` - print the URLs that would run without processing videos
-- `--no-dedupe` - process duplicate URLs instead of skipping repeats
-- `--stop-on-error` - stop the batch after the first failed URL
-- `--log-dir <path>` - choose where logs and summaries are written
-
-## Known Limitations
-
-- Vision responses can occasionally return malformed JSON or incomplete fields;
-  the pipeline preserves raw responses rather than failing silently.
-- Transcription accuracy drops on videos with loud background music and minimal
-  speech.
-- The pipeline samples every 3rd extracted frame for vision analysis to manage
-  API cost and runtime.
-- YouTube extraction can change over time; update `yt-dlp` if downloads start
-  failing.
-
-## Model Evaluation
-
-The repo includes a failure-driven refinement loop across 36 hand-labeled frames
-spanning 18 videos. Frames cover packaged food, phone reviews, partial logos,
-background/apparel logos, and low-light indoor conditions.
-
-Run the eval:
-
-```bash
-python eval/run_eval.py
-```
-
-Run the refinement loop:
-
-```bash
-python eval/run_refinement_loop.py
-```
-
-Dry-run the refinement loop without appending history or artifacts:
-
-```bash
-python eval/run_refinement_loop.py --dry-run
-```
-
-**Improvement across stages:**
-
-| Stage | What changed | F1 |
-|---|---|---:|
-| Stage 2 | Baseline | 0.81 |
-| Stage 3 | Manual prompt refinements | 0.90 |
-| Stage 4 | Automated failure-driven loop | 0.90 confirmed |
-
-Stage 4 tested 5 refinement types. 4 were accepted, 1 rejected:
-
-- `parser_failure` +0.05 - fixed malformed JSON recovery
-- `brand_alias` rejected - alias normalization had no effect on this dataset
-- `false_positive_descriptor` +0.07 - filtered product descriptors mistaken for brands
-- `low_light_miss` +0.05 - improved detection in warm/dark frames
-- `background_apparel_ambiguity` +0.09 - distinguished incidental vs prominent brand presence
-
-Refinement history is tracked in:
-
-```text
-eval/refinement_history.json
-```
-
-## Stage 5 Dataset Expansion
-
-Stage 5 expands the eval set from the original 36 hand-labeled frames toward
-5-10+ frames per video, including the new Shorts batch. The original
-`eval/golden_dataset.json` and `eval/stage2_labels.json` remain protected and
-must not be edited.
-
-Build the candidate review set:
-
-```bash
-python eval/build_stage5_dataset.py
-```
-
-This writes:
-
-- `eval/golden_dataset_stage5_candidates.json` - candidate labels
-- `eval/stage5_labels.json` - richer review labels
-- `eval/stage5_expansion_report.md` - frame counts and unavailable URLs
-
-Build the review gallery:
-
-```bash
-python eval/build_stage5_review_gallery.py
-```
-
-This writes:
-
-- `eval/stage5_review_gallery.html` - visual review gallery grouped by video
-- `eval/stage5_review_decisions_template.json` - editable decision template
-
-New labels generated by the current pipeline are marked `needs_human_review`.
-After reviewing a row in the decision template, set `review_status` to
-`human_reviewed` and correct `brands_actually_visible` if needed. Apply reviewed
-decisions back to the Stage 5 candidate files:
-
-```bash
-python eval/apply_stage5_review_decisions.py
-```
-
-Only reviewed rows can be promoted into the Stage 5 golden dataset:
-
-```bash
-python eval/promote_stage5_dataset.py
-```
-
-For incremental checks, promote only reviewed rows:
-
-```bash
-python eval/promote_stage5_dataset.py --allow-partial
-```
-
-Promotion writes `eval/golden_dataset_stage5.json`,
-`eval/stage5_labels_reviewed.json`, and adds the Stage 5 golden hash to
-`eval/protected_dataset_hashes.json`.
-
-## Model A/B Evaluation
-
-Once Stage 5 labels are reviewed and promoted, compare candidate vision models:
-
-```bash
-python eval/run_model_ab.py --run-model
-```
-
-Dry-run the model sweep without calling model endpoints:
-
-```bash
-python eval/run_model_ab.py --tier accuracy --limit 5
-```
-
-The dry run checks protected dataset access, frame coverage, provider routing,
-and output writing. It does not produce F1 scores because no predictions are
-generated.
-
-Model tiers live in `eval/model_tiers.json`:
-
-| Tier | Use case | Models |
-|---|---|---|
-| `baseline` | Regression check against the current lightweight baseline | Llama 3.2 11B Vision |
-| `balanced` | Routine shortlist with stronger vision and smaller sweep | Llama 3.2 90B Vision, Nemotron Nano 12B VL |
-| `accuracy` | Recommended selection tier for the default model | Llama 3.2 90B Vision |
-| `experimental` | Endpoint-id or JSON-contract validation before quality comparison | Kimi K2.6, Nemotron 3 Nano Omni 30B A3B Reasoning |
-| `full` | Full sweep including baseline and all current candidates | All configured candidates |
-
-Run a tier:
-
-```bash
-python eval/run_model_ab.py --run-model --tier accuracy
-```
-
-You can still override the tier with explicit models:
-
-```bash
-python eval/run_model_ab.py --run-model --models meta/llama-3.2-90b-vision-instruct,kimi-k2.6
-```
-
-Current accuracy-tier candidates:
-
-- `meta/llama-3.2-90b-vision-instruct`
-
-The latest live run on the protected 36-frame human-labeled set selected:
-
-| Model | Precision | Recall | F1 | Error rate | Avg latency |
-|---|---:|---:|---:|---:|---:|
-| `meta/llama-3.2-90b-vision-instruct` | 0.44 | 0.79 | 0.56 | 0.00 | 9354 ms |
-| `nvidia/nemotron-nano-12b-v2-vl` | 0.47 | 0.50 | 0.48 | 0.00 | 2990 ms |
-| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` | 0.00 | 0.00 | 0.00 | 0.00 | 4397 ms |
-| `kimi-k2.6` | 0.00 | 0.00 | 0.00 | 1.00 | n/a |
-
-Current default NVIDIA vision model:
-
-```text
-meta/llama-3.2-90b-vision-instruct
-```
-
-The unavailable retired endpoint has been removed from the active tier config.
-Use `meta/llama-3.2-90b-vision-instruct` for the current NVIDIA vision fallback.
-
-Kimi is currently tracked as experimental because the NVIDIA-hosted model id
-`kimi-k2.6` returned `404 page not found` for every frame. Once the exact
-NVIDIA endpoint id is confirmed, add it back to the `accuracy` tier.
-
-Nemotron 3 Nano Omni 30B A3B Reasoning is also tracked as experimental. Its
-endpoint worked, but it returned prose instead of the required JSON object for
-all 36 protected eval frames, so JSON parse success was `0.00`.
-
-The runner tracks precision, recall, F1, JSON parse success rate, error rate,
-and average latency in `eval/model_ab_results.json`. After a live run, it picks
-`best_model` by highest F1, then highest JSON parse success rate, then lowest
-error rate, then lowest average latency.
-
-Full comparison notes are in `eval/model_ab_comparison.md`.
-
-Stage 5 expanded-set result after reviewing and promoting all 360 candidate
-frames:
-
-| Dataset | Model / prompt | Precision | Recall | F1 |
-|---|---|---:|---:|---:|
-| Stage 5, 360 reviewed frames | current default prompt | pending rerun | pending rerun | pending rerun |
-| Stage 5, 360 reviewed frames | current strict precision prompt | pending rerun | pending rerun | pending rerun |
-
-The Stage 5 failure pattern is precision-heavy: the model finds many plausible
-brands but over-predicts brands that are not visibly present or not accepted in
-the reviewed labels. The strict precision prompt reduced false positives on the
-full run from 183 to 151, at the cost of recall. Use strict mode for user-facing
-reports, and default mode for broader discovery/review. Detailed notes are in
-`eval/stage5_model_eval_report.md`.
-
-## Project Structure
-
-```text
-main.py                     # Orchestrates the full pipeline
-run_batch.py                # Batch runner for URL lists
-src/downloader.py           # Video + metadata download
-src/frame_extractor.py      # Frame extraction
-src/transcriber.py          # Audio transcription
-src/vision_analyser.py      # Per-frame vision analysis
-src/synthesiser.py          # Final report generation
-docs/sample_output/         # Example report
-eval/                       # Golden dataset and model evaluation script
-```
-
-### Mac-assisted hosted testing
-
-The protected hosted app can use this Mac as its video-processing worker. The Vercel daemon is scaled to zero while cloud YouTube ingestion is blocked. Start the regular worker with `caffeinate -i .venv/bin/python scripts/run_mac_worker.py`; keep the Mac awake and online, and stop it with Ctrl+C when launched in your terminal. Provider/download settings remain local, while reports and immutable evidence are persisted to the linked cloud database. See [Mac worker testing](docs/mac-worker-testing.md) for setup and verified acceptance results. This configuration is approved for protected testing and requires the Mac to remain available.
+Historical vision evaluation and reviewed-label workflows remain under `eval/`. Their dataset-specific scores are not a quality guarantee for current studio analysis. See `eval/run_eval.py`, `eval/run_refinement_loop.py`, and `eval/run_model_ab.py`; live evaluations make provider calls. Protected golden datasets must not be modified casually.
+
+## Limits and remaining work
+
+- Autonomous cloud YouTube ingestion remains blocked. Mac availability is required for the current testing topology.
+- YouTube formats, access challenges, private videos, and extraction changes can prevent processing. The downloader tries public format/client fallbacks before configured local authentication.
+- Long videos and large downloads are bounded in the worker configuration. Runtime varies with duration, transcription, provider latency, and source count; no fixed completion time is promised.
+- Whisper can mishear speech, and sampled frames do not cover every visual moment. Exact transcript matching verifies extraction grounding, not that transcription itself is perfect.
+- Model extraction can omit findings or classify sentiment imperfectly. Specific comparisons are displayed only with direct quoted support; absent support stays absent.
+- The Mac acceptance run validates one source. It does not establish a fresh ten-source cloud run or autonomous production readiness.
+
+## Main files
+
+| Path | Responsibility |
+| --- | --- |
+| `frontend/` | Dependency-free dashboard and evidence interactions |
+| `src/http_app.py`, `app.py`, `serve_frontend.py` | Shared HTTP boundary, hosted adapter, local server |
+| `src/job_store.py` | Durable queue, ownership, quotas, leases, reports, image storage |
+| `worker.py`, `execute_source.py` | Worker loop and isolated pipeline subprocesses |
+| `main.py`, `src/downloader.py`, `src/frame_extractor.py`, `src/transcriber.py` | Original media-processing pipeline |
+| `src/vision_analyser.py`, `src/synthesiser.py` | Existing configured model stages |
+| `src/grounded_insights.py`, `src/presentation.py` | Grounded extraction, aggregation, and report contract |
+| `scripts/run_mac_worker.py` | Hosted-queue worker launcher for this Mac |
+| `tests/`, `docs/` | Regression coverage, QA evidence, and operational documentation |
